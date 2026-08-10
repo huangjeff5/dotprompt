@@ -38,8 +38,6 @@ jobs:
         with:
           files: |
             dart/**
-            bazel/dart/**
-            bazel/rules_dart/**
             spec/**
             .github/workflows/dart.yml
 
@@ -121,29 +119,6 @@ jobs:
           dart pub global activate coverage
           dart pub global run coverage:test_with_coverage
 
-  bazel-build:
-    needs: check-paths
-    if: needs.check-paths.outputs.any_changed == 'true'
-    name: Bazel Build & Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.18.0
-        with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
-          repository-cache: true
-
-      - name: Build Dart targets
-        run: bazel build //dart/...
-
-      - name: Run Dart tests via Bazel
-        run: bazel test //dart/... --test_output=errors
-        continue-on-error: true  # Tests may need network access
-
   antlr-grammar:
     needs: check-paths
     if: needs.check-paths.outputs.any_changed == 'true'
@@ -156,8 +131,8 @@ jobs:
       - name: Setup Java (required for ANTLR)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Install ANTLR4
         run: |
@@ -180,10 +155,10 @@ jobs:
 
           # Compare with committed files (excluding headers)
           for file in HandlebarsLexer.dart HandlebarsParser.dart HandlebarsParserVisitor.dart HandlebarsParserBaseVisitor.dart; do
-            if [ -f "../../dart/handlebarrz/lib/src/antlr/$file" ]; then
+            if [ -f "../../dart/handlebars_dart/lib/src/antlr/$file" ]; then
               # Strip header comments and compare
               tail -n +22 "$file" > "/tmp/generated_$file"
-              tail -n +22 "../../dart/handlebarrz/lib/src/antlr/$file" > "/tmp/committed_$file"
+              tail -n +22 "../../dart/handlebars_dart/lib/src/antlr/$file" > "/tmp/committed_$file"
               if ! diff -q "/tmp/generated_$file" "/tmp/committed_$file" > /dev/null; then
                 echo "Warning: Generated $file differs from committed version"
                 echo "Run './scripts/generate_handlebars_parser' to update"
@@ -193,17 +168,22 @@ jobs:
 
   dart-checks-all:
     if: always()
-    needs: [format-check, analyze, test, bazel-build, antlr-grammar]
+    needs: [format-check, analyze, test, antlr-grammar]
     runs-on: ubuntu-latest
     steps:
       - name: Check overall status
         run: |
-          if [[ "${{ needs.format-check.result }}" == "failure" || \
-                "${{ needs.analyze.result }}" == "failure" || \
-                "${{ needs.test.result }}" == "failure" || \
-                "${{ needs.antlr-grammar.result }}" == "failure" ]]; then
+          if [[ "${NEEDS_FORMAT_CHECK_RESULT}" == "failure" || \
+                "${NEEDS_ANALYZE_RESULT}" == "failure" || \
+                "${NEEDS_TEST_RESULT}" == "failure" || \
+                "${NEEDS_ANTLR_GRAMMAR_RESULT}" == "failure" ]]; then
             echo "Dart checks failed"
             exit 1
           fi
           echo "Dart checks passed or were skipped"
           exit 0
+        env:
+          NEEDS_FORMAT_CHECK_RESULT: ${{ needs.format-check.result }}
+          NEEDS_ANALYZE_RESULT: ${{ needs.analyze.result }}
+          NEEDS_TEST_RESULT: ${{ needs.test.result }}
+          NEEDS_ANTLR_GRAMMAR_RESULT: ${{ needs.antlr-grammar.result }}

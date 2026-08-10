@@ -66,7 +66,7 @@ jobs:
       - name: Check if this is a release-please PR
         id: check-release-please
         run: |
-          if [[ "${{ github.head_ref }}" == release-please--* ]]; then
+          if [[ "${GITHUB_HEAD_REF}" == release-please--* ]]; then
             echo "is_release_please=true" >> $GITHUB_OUTPUT
           else
             echo "is_release_please=false" >> $GITHUB_OUTPUT
@@ -100,6 +100,6 @@ jobs:
           fi
 
       - name: Build all targets (Java ${{ matrix.java-version }})
-        run: bazelisk build --config=java${{ matrix.java-version }} //...
+        run: bazelisk build --config=java${{ matrix.java-version }} //... -- -//dart/...
       - name: Test all targets (Java ${{ matrix.java-version }})
-        run: bazelisk test --config=java${{ matrix.java-version }} //... --test_output=errors
+        run: bazelisk test --config=java${{ matrix.java-version }} --test_output=errors //... -- -//dart/...

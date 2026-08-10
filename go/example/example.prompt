@@ -1,5 +1,5 @@
 ---
-model: "gemini-1.5-flash"
+model: "gemini-2.5-flash"
 description: "Summarize the input text."
 input:
   schema:
@@ -13,10 +13,10 @@ input:
 output:
   format: "text"
 ---
-<<<dotprompt:role:user>>>
+{{role "user"}}
 Please summarize the following text.
 
 {{text}}
 
-<<<dotprompt:role:model>>>
+{{role "model"}}
 Yes, I understand. I will summarize it.
